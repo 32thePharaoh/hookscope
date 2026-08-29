@@ -17,9 +17,11 @@ Architecture lives in `~/.cursor/plans/hookscope_webhook_inspector_826071af.plan
 
 ## Product invariants (v1.0)
 
-- Capture URL stays `/in/{token}` on a dedicated `routes/capture.php` stack (no CSRF, no session). Not `routes/api.php`.
+- Capture URL stays `/in/{token}` on a dedicated `routes/capture.php` stack (no CSRF, no session). Not `routes/api.php`. Record GET/POST/PUT/PATCH/DELETE; skip HEAD and OPTIONS without inserting a row.
 - Persist the capture first; return 200 even if the queue is down.
-- Encode at every JSON boundary (headers, Inertia props, broadcasts, replay snippets). Capture bodies stay `longblob` + `body_encoding`. Replay `response_snippet` is always base64 at that boundary — no `response_snippet_encoding` column.
+- Multipart bodies on `/in/` must hit nginx `enable_post_data_reading=off` so `getContent()` is the real bytes. Do not set that ini globally.
+- Queue and cache use Redis. Broadcast stays `log` until Phase 7. The entrypoint generates `APP_KEY` for command services (worker, scheduler), not only FPM.
+- Encode at every JSON boundary (headers, Inertia props, broadcasts, replay snippets). Capture bodies stay `longblob` + `body_encoding`. Headers are stored as `array<string, list<string>>`. Replay `response_snippet` is always base64 at that boundary — no `response_snippet_encoding` column.
 - Replay goes through the PHP SSRF guard. Do not reimplement replay in another language.
 - Pest and Larastan **level 7** run against MySQL. The `ALTER TABLE ... LONGBLOB` migration is MySQL-only; do not add a SQLite test path.
 

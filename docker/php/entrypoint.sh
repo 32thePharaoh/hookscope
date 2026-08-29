@@ -3,10 +3,6 @@ set -eu
 
 cd /var/www/html
 
-if [ "$#" -gt 0 ]; then
-    exec "$@"
-fi
-
 if [ ! -f .env ]; then
     cp .env.example .env
 fi
@@ -36,6 +32,10 @@ chown -R www-data:www-data storage bootstrap/cache
 
 php artisan package:discover --ansi --no-interaction >/dev/null
 php artisan config:clear --no-interaction >/dev/null
-php artisan migrate --force --no-interaction
 
-exec php-fpm -F
+if [ "$#" -eq 0 ] || [ "$1" = "php-fpm" ]; then
+    php artisan migrate --force --no-interaction
+    exec php-fpm -F
+fi
+
+exec "$@"

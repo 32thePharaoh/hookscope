@@ -26,6 +26,17 @@ services:
         ports:
             - '127.0.0.1:6379:6379'
 
+    queue:
+        build:
+            context: .
+            target: development
+        environment:
+            APP_ENV: local
+            APP_DEBUG: 'true'
+        volumes:
+            - .:/var/www/html
+        command: ['php', 'artisan', 'queue:listen', '--tries=1']
+
     vite:
         build:
             context: .
