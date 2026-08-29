@@ -1,11 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/vue-starter-kit",
+    "name": "32thepharaoh/hookscope",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Self-hosted webhook inspector and replayer.",
     "keywords": [
         "laravel",
-        "framework"
+        "webhooks",
+        "webhook-inspector",
+        "self-hosted"
     ],
     "license": "MIT",
     "require": {
@@ -15,7 +17,8 @@
         "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
-        "laravel/wayfinder": "^0.1.14"
+        "laravel/wayfinder": "^0.1.14",
+        "predis/predis": "^3.6"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
@@ -23,7 +26,6 @@
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
-        "laravel/sail": "^1.53",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.9.3",
         "pestphp/pest": "^4.7",
