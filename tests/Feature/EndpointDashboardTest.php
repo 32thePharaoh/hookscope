@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Capture\CapturedRequestPresenter;
 use App\Capture\CaptureDropCounter;
 use App\Models\CapturedRequest;
 use App\Models\Endpoint;
@@ -252,6 +253,16 @@ class EndpointDashboardTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('drops_in_last_24h', 4),
             );
+    }
+
+    public function test_the_body_encoding_marker_matches_the_payload_it_labels(): void
+    {
+        // A row whose stored marker disagrees with its bytes must not be handed
+        // to the client as base64 still labelled utf-8.
+        $encoded = CapturedRequestPresenter::encodeBody("\x80\x81\xFF", 'utf-8');
+
+        $this->assertSame('binary', $encoded['body_encoding']);
+        $this->assertSame(base64_encode("\x80\x81\xFF"), $encoded['body']);
     }
 
     public function test_capture_list_uses_cursor_pagination(): void

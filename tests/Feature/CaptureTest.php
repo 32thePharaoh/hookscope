@@ -226,6 +226,26 @@ class CaptureTest extends TestCase
         $this->assertSame(0, CaptureDropCounter::count($endpoint->token));
     }
 
+    public function test_a_content_type_with_invalid_utf8_does_not_lose_the_capture(): void
+    {
+        $endpoint = Endpoint::factory()->create();
+        $contentType = "application/caf\xe9";
+
+        $this->call('POST', '/in/'.$endpoint->token, server: [
+            'CONTENT_TYPE' => $contentType,
+        ], content: 'x')->assertOk();
+
+        $capture = CapturedRequest::query()->sole();
+
+        // The column is text, so raw wire bytes would blow up the insert and
+        // lose the request. The lossless original still survives in headers.
+        $this->assertTrue(mb_check_encoding((string) $capture->content_type, 'UTF-8'));
+        // MySQL's JSON type reorders object keys, so assert the fields directly.
+        $marker = $capture->headers['content-type'][0];
+        $this->assertSame('base64', $marker['encoding']);
+        $this->assertSame(base64_encode($contentType), $marker['value']);
+    }
+
     public function test_capture_does_not_require_csrf(): void
     {
         $endpoint = Endpoint::factory()->create();

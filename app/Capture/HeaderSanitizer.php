@@ -20,6 +20,19 @@ final class HeaderSanitizer
     }
 
     /**
+     * Make one header value safe for a text column. The lossless original is
+     * still kept, base64-marked, in the headers JSON.
+     */
+    public static function scalar(?string $value): ?string
+    {
+        if ($value === null || mb_check_encoding($value, 'UTF-8')) {
+            return $value;
+        }
+
+        return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+    }
+
+    /**
      * @return string|array{encoding: string, value: string}
      */
     private static function sanitizeValue(mixed $value): string|array

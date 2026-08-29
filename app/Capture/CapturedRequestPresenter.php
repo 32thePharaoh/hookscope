@@ -73,18 +73,23 @@ final class CapturedRequestPresenter
             'size_bytes' => $capture->size_bytes,
             'received_at' => $capture->received_at->toIso8601String(),
             'headers' => $capture->headers,
-            'body' => self::encodeBody($capture->body, $capture->body_encoding),
-            'body_encoding' => $capture->body_encoding,
+            ...self::encodeBody($capture->body, $capture->body_encoding),
         ];
     }
 
-    public static function encodeBody(string $body, string $encoding): string
+    /**
+     * Reports the encoding actually applied rather than the stored one, so the
+     * marker cannot disagree with the payload it labels.
+     *
+     * @return array{body: string, body_encoding: string}
+     */
+    public static function encodeBody(string $body, string $encoding): array
     {
         if ($encoding === 'utf-8' && mb_check_encoding($body, 'UTF-8')) {
-            return $body;
+            return ['body' => $body, 'body_encoding' => 'utf-8'];
         }
 
-        return base64_encode($body);
+        return ['body' => base64_encode($body), 'body_encoding' => 'binary'];
     }
 
     private static function queryString(CapturedRequest $capture): ?string
