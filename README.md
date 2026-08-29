@@ -40,3 +40,5 @@ and `npm install` on the host first.
 - [![tests](https://github.com/32thePharaoh/hookscope/actions/workflows/tests.yml/badge.svg)](https://github.com/32thePharaoh/hookscope/actions/workflows/tests.yml)
 - License: MIT
 - Static analysis: Larastan **level 7**
+- Clone-and-run path smoke-tested on every PR: `docker-smoke.yml` boots `compose.yaml`
+  with no `.env`, seeds, and drives real traffic through nginx

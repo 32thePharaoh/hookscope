@@ -1,0 +1,88 @@
+name: docker-smoke
+
+# Runs the clone-and-run path a reviewer actually uses: build the image, boot
+# compose.yaml with no .env, and drive it through nginx.
+#
+# Deliberately not filtered by paths. The blockers this exists to catch have come
+# from a seeder and from an entrypoint, not just from docker/**, and any PHP change
+# can break first boot. Kept out of tests.yml so a slow or flaky container run
+# cannot red-badge the repo; tests.yml still owns the README badge.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No .env is created on purpose: a fresh clone has none, and compose.yaml
+      # must stand up without one.
+      - name: Build and start the stack
+        run: docker compose -f compose.yaml up -d --wait
+
+      - name: Health endpoint answers
+        run: curl -fsS -o /dev/null http://127.0.0.1/up
+
+      - name: First boot seeded the demo login and endpoint
+        run: |
+          set -euo pipefail
+          users=$(docker compose -f compose.yaml exec -T app php artisan tinker --execute='echo App\Models\User::query()->where("email", config("hookscope.demo.email"))->count();' | tr -d '\r' | tail -1)
+          endpoints=$(docker compose -f compose.yaml exec -T app php artisan tinker --execute='echo App\Models\Endpoint::query()->count();' | tr -d '\r' | tail -1)
+          echo "demo users=$users endpoints=$endpoints"
+          test "$users" = "1"
+          test "$endpoints" = "1"
+
+      - name: Demo traffic lands through nginx
+        run: |
+          set -euo pipefail
+          before=$(docker compose -f compose.yaml exec -T app php artisan tinker --execute='echo App\Models\CapturedRequest::query()->count();' | tr -d '\r' | tail -1)
+          docker compose -f compose.yaml exec -T app php artisan hookscope:demo-traffic
+          after=$(docker compose -f compose.yaml exec -T app php artisan tinker --execute='echo App\Models\CapturedRequest::query()->count();' | tr -d '\r' | tail -1)
+          echo "captured before=$before after=$after"
+          # 24 shots, the oversized one is rejected by nginx and stores nothing.
+          test "$((after - before))" = "23"
+
+      # Bodies are consumed into $_POST unless enable_post_data_reading is off for
+      # this location, which no Pest test can reach.
+      - name: Multipart bodies are captured, not emptied
+        run: |
+          set -euo pipefail
+          size=$(docker compose -f compose.yaml exec -T app php artisan tinker --execute='echo App\Models\CapturedRequest::query()->where("content_type", "like", "multipart%")->value("size_bytes");' | tr -d '\r' | tail -1)
+          echo "multipart size_bytes=$size"
+          test "$size" -gt 0
+
+      # Also unreachable from Pest: these requests never traverse nginx there.
+      - name: Oversized bodies get nginx's JSON 413 on POST and PUT
+        run: |
+          set -euo pipefail
+          token=$(docker compose -f compose.yaml exec -T app php artisan tinker --execute='echo App\Models\Endpoint::query()->value("token");' | tr -d '\r' | tail -1)
+          head -c 2000000 /dev/urandom > /tmp/oversized.bin
+          for method in POST PUT; do
+            code=$(curl -s -o /tmp/body.json -w '%{http_code}' -X "$method" --data-binary @/tmp/oversized.bin "http://127.0.0.1/in/$token")
+            echo "$method -> $code $(cat /tmp/body.json)"
+            test "$code" = "413"
+            grep -q 'Payload too large' /tmp/body.json
+          done
+
+      - name: Container logs
+        if: failure()
+        run: docker compose -f compose.yaml logs --tail 200
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f compose.yaml down -v
