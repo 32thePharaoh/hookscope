@@ -1,11 +1,6 @@
-# Local development overlay. NOT auto-loaded: the file is named compose.dev.yaml
-# rather than compose.override.yaml on purpose, so that a bare `docker compose up`
-# runs the production-shaped stack from compose.yaml and works on a fresh clone.
-#
-# The override bind-mounts the checkout over /var/www/html, which on a fresh clone
-# would shadow the image's vendor/ and node_modules/ with empty host directories
-# and break the container before FPM starts. Opting in explicitly keeps that
-# failure mode away from anyone who just cloned the repo:
+# Development overlay. Named compose.dev.yaml rather than compose.override.yaml so
+# it is not auto-loaded: the bind mount below would shadow the image's vendor/ on a
+# fresh clone and break `docker compose up`. Opt in explicitly:
 #
 #   docker compose -f compose.yaml -f compose.dev.yaml up -d --wait
 services:
@@ -25,8 +20,7 @@ services:
             - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
 
     mysql:
-        # Published on loopback only. Root has no password, so binding 0.0.0.0 would
-        # expose it to everything on the local network.
+        # Loopback only, so published ports are not reachable from the network.
         ports:
             - '127.0.0.1:3306:3306'
         volumes:
@@ -34,7 +28,6 @@ services:
             - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
 
     redis:
-        # Loopback only: no password is set on this Redis.
         ports:
             - '127.0.0.1:6379:6379'
 

@@ -34,9 +34,7 @@ services:
                 condition: service_healthy
         expose:
             - '9000'
-        # storage/ is a named volume so the APP_KEY the entrypoint generates, plus
-        # logs and sessions, survive `docker compose down`. Without it every recreate
-        # mints a new key and logs every user out.
+        # Named volume so the generated APP_KEY, logs and sessions survive a recreate.
         volumes:
             - app-storage:/var/www/html/storage
         healthcheck:

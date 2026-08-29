@@ -13,16 +13,10 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
-    # `composer setup` runs `artisan migrate --force` against .env.example, which
-    # sets DB_CONNECTION=mysql. These values match it exactly (127.0.0.1:3306,
-    # database hookscope, user root, password hookscope) so setup runs unmodified.
-    #
-    # Pest uses the same server but a separate schema, hookscope_testing, created
-    # by the step below. RefreshDatabase truncates whatever it points at, so
-    # sharing the development database would wipe seeded demo data every run.
-    # Keep this image tag in sync with compose.yaml. SQLite is deliberately not
-    # used: it cannot verify the binary-body handling the longblob schema exists
-    # to protect.
+    # Matches .env.example so `composer setup` runs unmodified. Pest uses a separate
+    # schema (hookscope_testing, created below) because RefreshDatabase truncates
+    # whatever it points at. Not SQLite: it cannot verify binary-body handling.
+    # Keep this image tag in sync with compose.yaml.
     services:
       mysql:
         image: mysql:8.4

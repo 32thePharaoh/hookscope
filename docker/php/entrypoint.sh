@@ -14,12 +14,8 @@ fi
 mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs storage/app bootstrap/cache
 
 # env_file passes APP_KEY= as an empty string, which wins over a generated .env
-# file. Unset it and write a real key so artisan and FPM both see it.
-#
-# The key is cached under storage/, which compose.yaml backs with a named volume.
-# Without that, .env lives only in the container's writable layer and every
-# `docker compose down && up` mints a new key, silently invalidating sessions
-# (and, once anything is encrypted at rest, making it undecryptable).
+# file. Unset it and write a real key so artisan and FPM both see it. The key is
+# cached under storage/, a named volume, so a recreate does not rotate it.
 APP_KEY_FILE=storage/app/.appkey
 
 if [ -z "${APP_KEY:-}" ]; then

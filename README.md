@@ -25,11 +25,8 @@ the container generates its own `APP_KEY` on first boot.
 docker compose -f compose.yaml -f compose.dev.yaml up -d --wait
 ```
 
-The dev overlay bind-mounts your checkout and runs Vite with HMR, so it needs
-`composer install` and `npm install` to have been run on the host first. It is
-deliberately **not** named `compose.override.yaml`: auto-loading it would make the
-bare `docker compose up` above bind an empty `vendor/` over the image on a fresh
-clone and break the quickstart.
+Bind-mounts your checkout and runs Vite with HMR, so it expects `composer install`
+and `npm install` on the host first.
 
 ## Status
 
