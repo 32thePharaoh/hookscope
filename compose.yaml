@@ -34,7 +34,6 @@ services:
                 condition: service_healthy
         expose:
             - '9000'
-        # Named volume so the generated APP_KEY, logs and sessions survive a recreate.
         volumes:
             - app-storage:/var/www/html/storage
         healthcheck:

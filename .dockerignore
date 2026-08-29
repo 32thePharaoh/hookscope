@@ -23,8 +23,6 @@ bootstrap/ssr
 .zed
 .fleet
 .nova
-
-# Not needed in the runtime image
 tests
 phpunit.xml
 pint.json
