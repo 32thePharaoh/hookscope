@@ -2,9 +2,13 @@
 
 namespace App\Providers;
 
+use App\Capture\CaptureDropCounter;
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -24,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureCaptureRateLimiting();
     }
 
     /**
@@ -46,5 +51,24 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    protected function configureCaptureRateLimiting(): void
+    {
+        RateLimiter::for('capture', function (Request $request) {
+            $token = (string) $request->route('token');
+
+            return [
+                Limit::perMinute((int) config('hookscope.throttle_per_minute'))
+                    ->by('endpoint:'.$token)
+                    ->response(function (Request $request, array $headers) use ($token) {
+                        CaptureDropCounter::record($token);
+
+                        return response()->json(['message' => 'Too many requests'], 429, $headers);
+                    }),
+                Limit::perMinute((int) config('hookscope.throttle_global_per_minute'))
+                    ->by('global'),
+            ];
+        });
     }
 }

@@ -1,5 +1,24 @@
 name: hookscope
 
+x-app-environment: &app-environment
+    APP_NAME: Hookscope
+    APP_ENV: production
+    APP_DEBUG: 'false'
+    APP_URL: http://localhost
+    DB_CONNECTION: mysql
+    DB_HOST: mysql
+    DB_PORT: '3306'
+    DB_DATABASE: hookscope
+    DB_USERNAME: root
+    DB_PASSWORD: ${DB_PASSWORD:-hookscope}
+    REDIS_CLIENT: predis
+    REDIS_HOST: redis
+    REDIS_PORT: '6379'
+    CACHE_STORE: redis
+    QUEUE_CONNECTION: redis
+    SESSION_DRIVER: database
+    BROADCAST_CONNECTION: log
+
 services:
     app:
         build:
@@ -10,23 +29,7 @@ services:
             - path: .env
               required: false
         environment:
-            APP_NAME: Hookscope
-            APP_ENV: production
-            APP_DEBUG: 'false'
-            APP_URL: http://localhost
-            DB_CONNECTION: mysql
-            DB_HOST: mysql
-            DB_PORT: '3306'
-            DB_DATABASE: hookscope
-            DB_USERNAME: root
-            DB_PASSWORD: ${DB_PASSWORD:-hookscope}
-            REDIS_CLIENT: predis
-            REDIS_HOST: redis
-            REDIS_PORT: '6379'
-            CACHE_STORE: database
-            QUEUE_CONNECTION: database
-            SESSION_DRIVER: database
-            BROADCAST_CONNECTION: log
+            <<: *app-environment
         depends_on:
             mysql:
                 condition: service_healthy
@@ -46,6 +49,27 @@ services:
             timeout: 5s
             retries: 12
             start_period: 40s
+
+    queue:
+        build:
+            context: .
+            target: app
+        restart: unless-stopped
+        env_file:
+            - path: .env
+              required: false
+        environment:
+            <<: *app-environment
+        command: ['php', 'artisan', 'queue:work', '--sleep=1', '--tries=1']
+        depends_on:
+            app:
+                condition: service_healthy
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        volumes:
+            - app-storage:/var/www/html/storage
 
     nginx:
         build:
