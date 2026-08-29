@@ -13,19 +13,12 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
-    # `composer setup` runs `artisan migrate --force` against .env.example, which
-    # sets DB_CONNECTION=mysql. These values match it exactly (127.0.0.1:3306,
-    # database hookscope, user root, empty password) so setup runs unmodified.
-    #
-    # Note: the Pest suite itself still runs on SQLite in-memory, pinned by
-    # phpunit.xml. That moves to MySQL once compose exists, because SQLite
-    # enforces neither column encoding nor collation and so cannot verify the
-    # binary-body handling the longblob schema is being chosen to protect.
+    # mysql:8.4 — keep in sync with compose.yaml. Pest uses hookscope_testing.
     services:
       mysql:
         image: mysql:8.4
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_ROOT_PASSWORD: hookscope
           MYSQL_DATABASE: hookscope
         ports:
           - 3306:3306
@@ -53,6 +46,11 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
+
+      - name: Create test database
+        run: >-
+          php -r "(new PDO('mysql:host=127.0.0.1;port=3306', 'root',
+          'hookscope'))->exec('CREATE DATABASE IF NOT EXISTS hookscope_testing');"
 
       - name: Setup Application
         run: composer setup

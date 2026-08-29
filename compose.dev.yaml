@@ -1,0 +1,40 @@
+# Not compose.override.yaml — Compose auto-loads that filename.
+services:
+    app:
+        build:
+            context: .
+            target: development
+        environment:
+            APP_ENV: local
+            APP_DEBUG: 'true'
+        volumes:
+            - .:/var/www/html
+
+    nginx:
+        volumes:
+            - ./public:/var/www/html/public
+            - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+    mysql:
+        ports:
+            - '127.0.0.1:3306:3306'
+        volumes:
+            - mysql-data:/var/lib/mysql
+            - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+
+    redis:
+        ports:
+            - '127.0.0.1:6379:6379'
+
+    vite:
+        build:
+            context: .
+            target: development
+        working_dir: /var/www/html
+        volumes:
+            - .:/var/www/html
+        ports:
+            - '127.0.0.1:5173:5173'
+        environment:
+            APP_ENV: local
+        command: ['sh', '-c', 'npm install && npm run dev']
