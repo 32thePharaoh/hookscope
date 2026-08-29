@@ -15,16 +15,19 @@ jobs:
 
     # `composer setup` runs `artisan migrate --force` against .env.example, which
     # sets DB_CONNECTION=mysql. These values match it exactly (127.0.0.1:3306,
-    # database hookscope, user root, empty password) so setup runs unmodified.
+    # database hookscope, user root, password hookscope) so setup runs unmodified.
     #
-    # Pest uses the same MySQL (phpunit.xml, not SQLite). Keep this image tag
-    # in sync with compose.yaml. SQLite cannot verify the binary-body handling
-    # the longblob schema is being chosen to protect.
+    # Pest uses the same server but a separate schema, hookscope_testing, created
+    # by the step below. RefreshDatabase truncates whatever it points at, so
+    # sharing the development database would wipe seeded demo data every run.
+    # Keep this image tag in sync with compose.yaml. SQLite is deliberately not
+    # used: it cannot verify the binary-body handling the longblob schema exists
+    # to protect.
     services:
       mysql:
         image: mysql:8.4
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_ROOT_PASSWORD: hookscope
           MYSQL_DATABASE: hookscope
         ports:
           - 3306:3306
@@ -52,6 +55,11 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
+
+      - name: Create test database
+        run: >-
+          php -r "(new PDO('mysql:host=127.0.0.1;port=3306', 'root',
+          'hookscope'))->exec('CREATE DATABASE IF NOT EXISTS hookscope_testing');"
 
       - name: Setup Application
         run: composer setup

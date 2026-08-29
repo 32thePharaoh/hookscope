@@ -1,86 +1,100 @@
 name: hookscope
 
 services:
-  app:
-    build:
-      context: .
-      target: app
-    restart: unless-stopped
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      APP_NAME: Hookscope
-      APP_ENV: production
-      APP_DEBUG: "false"
-      APP_URL: http://localhost
-      DB_CONNECTION: mysql
-      DB_HOST: mysql
-      DB_PORT: "3306"
-      DB_DATABASE: hookscope
-      DB_USERNAME: root
-      DB_PASSWORD: ""
-      REDIS_CLIENT: predis
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
-      CACHE_STORE: database
-      QUEUE_CONNECTION: database
-      SESSION_DRIVER: database
-      BROADCAST_CONNECTION: log
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    expose:
-      - "9000"
-    healthcheck:
-      test: ["CMD-SHELL", "SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 40s
+    app:
+        build:
+            context: .
+            target: app
+        restart: unless-stopped
+        env_file:
+            - path: .env
+              required: false
+        environment:
+            APP_NAME: Hookscope
+            APP_ENV: production
+            APP_DEBUG: 'false'
+            APP_URL: http://localhost
+            DB_CONNECTION: mysql
+            DB_HOST: mysql
+            DB_PORT: '3306'
+            DB_DATABASE: hookscope
+            DB_USERNAME: root
+            DB_PASSWORD: ${DB_PASSWORD:-hookscope}
+            REDIS_CLIENT: predis
+            REDIS_HOST: redis
+            REDIS_PORT: '6379'
+            CACHE_STORE: database
+            QUEUE_CONNECTION: database
+            SESSION_DRIVER: database
+            BROADCAST_CONNECTION: log
+        depends_on:
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        expose:
+            - '9000'
+        # storage/ is a named volume so the APP_KEY the entrypoint generates, plus
+        # logs and sessions, survive `docker compose down`. Without it every recreate
+        # mints a new key and logs every user out.
+        volumes:
+            - app-storage:/var/www/html/storage
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 || exit 1',
+                ]
+            interval: 5s
+            timeout: 5s
+            retries: 12
+            start_period: 40s
 
-  nginx:
-    build:
-      context: .
-      target: nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    depends_on:
-      app:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/up"]
-      interval: 5s
-      timeout: 5s
-      retries: 8
-      start_period: 10s
+    nginx:
+        build:
+            context: .
+            target: nginx
+        restart: unless-stopped
+        ports:
+            - '80:80'
+        depends_on:
+            app:
+                condition: service_healthy
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1/up']
+            interval: 5s
+            timeout: 5s
+            retries: 8
+            start_period: 10s
 
-  mysql:
-    image: mysql:8.4
-    restart: unless-stopped
-    environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-      MYSQL_DATABASE: hookscope
-    volumes:
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "--silent"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
+    mysql:
+        image: mysql:8.4
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-hookscope}
+            MYSQL_DATABASE: hookscope
+        volumes:
+            - mysql-data:/var/lib/mysql
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent',
+                ]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+            start_period: 20s
 
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+    redis:
+        image: redis:7-alpine
+        restart: unless-stopped
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 5s
+            timeout: 3s
+            retries: 10
 
 volumes:
-  mysql-data:
+    mysql-data:
+    app-storage:

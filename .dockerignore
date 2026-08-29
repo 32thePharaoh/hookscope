@@ -23,3 +23,15 @@ bootstrap/ssr
 .zed
 .fleet
 .nova
+
+# Not needed in the runtime image
+tests
+phpunit.xml
+pint.json
+phpstan.neon
+compose.yaml
+compose.dev.yaml
+Dockerfile
+README.md
+LICENSE
+.editorconfig
