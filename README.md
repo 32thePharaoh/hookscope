@@ -16,8 +16,15 @@ docker compose up -d --wait
 
 App: http://localhost · health: http://localhost/up
 
-No `.env` step and no extra flags: `compose.yaml` builds everything it needs and
-the container generates its own `APP_KEY` on first boot.
+Demo login: `demo@hookscope.test` / `password`
+
+```bash
+docker compose exec app php artisan hookscope:demo-traffic
+```
+
+That command must run inside the app container so requests go through nginx
+(`http://nginx`), not php-fpm. No `.env` step: `compose.yaml` builds everything
+it needs, generates `APP_KEY` on first boot, and seeds the demo user.
 
 ### Local development
 

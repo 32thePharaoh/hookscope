@@ -18,13 +18,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        if (User::query()->exists()) {
+            return;
+        }
+
         $user = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'name' => config('hookscope.demo.name'),
+            'email' => config('hookscope.demo.email'),
+            'password' => config('hookscope.demo.password'),
         ]);
 
         $endpoint = Endpoint::factory()->for($user)->create([
-            'name' => 'Demo',
+            'name' => config('hookscope.demo.endpoint'),
         ]);
 
         $request = CapturedRequest::factory()->for($endpoint)->create();

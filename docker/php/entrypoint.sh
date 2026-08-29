@@ -35,6 +35,7 @@ php artisan config:clear --no-interaction >/dev/null
 
 if [ "$#" -eq 0 ] || [ "$1" = "php-fpm" ]; then
     php artisan migrate --force --no-interaction
+    php artisan db:seed --force --no-interaction
     exec php-fpm -F
 fi
 
