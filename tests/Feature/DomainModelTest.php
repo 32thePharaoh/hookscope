@@ -186,6 +186,24 @@ class DomainModelTest extends TestCase
         );
     }
 
+    public function test_content_type_accepts_values_too_long_for_a_varchar(): void
+    {
+        // content_type comes straight off the wire. Under strict mode a varchar(255)
+        // throws on the synchronous capture insert, losing the request.
+        $contentType = 'multipart/form-data; boundary='.str_repeat('a', 400);
+
+        $request = CapturedRequest::factory()->create(['content_type' => $contentType]);
+
+        $this->assertSame($contentType, $request->fresh()->content_type);
+    }
+
+    public function test_retention_days_accepts_a_full_year(): void
+    {
+        $endpoint = Endpoint::factory()->create(['retention_days' => 365]);
+
+        $this->assertSame(365, $endpoint->fresh()->retention_days);
+    }
+
     /**
      * @param  list<string>  $names
      * @return list<string>

@@ -21,7 +21,7 @@ return new class extends Migration
             $table->json('headers');
             $table->binary('body');
             $table->string('body_encoding', 32);
-            $table->string('content_type')->nullable();
+            $table->text('content_type')->nullable();
             $table->string('ip', 45)->nullable();
             $table->unsignedInteger('size_bytes');
             $table->timestamp('received_at');

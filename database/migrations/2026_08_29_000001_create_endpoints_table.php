@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('token', 64)->unique();
-            $table->unsignedTinyInteger('retention_days')->default(7);
+            $table->unsignedSmallInteger('retention_days')->default(7);
             $table->timestamps();
         });
     }
