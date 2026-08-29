@@ -20,7 +20,8 @@ Architecture lives in `~/.cursor/plans/hookscope_webhook_inspector_826071af.plan
 - Capture URL stays `/in/{token}` on a dedicated `routes/capture.php` stack (no CSRF, no session). Not `routes/api.php`. Record GET/POST/PUT/PATCH/DELETE; skip HEAD and OPTIONS without inserting a row.
 - Persist the capture first; return 200 even if the queue is down.
 - Multipart bodies on `/in/` must hit nginx `enable_post_data_reading=off` so `getContent()` is the real bytes. Do not set that ini globally.
-- Queue and cache use Redis. Broadcast stays `log` until Phase 7. The entrypoint generates `APP_KEY` for command services (worker, scheduler), not only FPM.
+- Queue and cache use Redis. Broadcast uses Reverb over the compose network (`reverb:8080`). nginx proxies `/app/` same-origin; `/apps` stays internal (no `ports:` on the reverb service). Shared Inertia props carry only `reverbKey`, never the secret. Client Echo derives host/port/TLS from `window.location`.
+- The entrypoint generates `APP_KEY` for command services (worker, scheduler, reverb), not only FPM.
 - Encode at every JSON boundary (headers, Inertia props, broadcasts, replay snippets). Capture bodies stay `longblob` + `body_encoding`. Headers are stored as `array<string, list<string>>`. Replay `response_snippet` is always base64 at that boundary — no `response_snippet_encoding` column.
 - Replay goes through the PHP SSRF guard. Do not reimplement replay in another language.
 - Clone-and-run seeds a demo user on first boot (`demo@hookscope.test` / `password`) and a `Demo` endpoint. Guard on `User::query()->exists()`.
@@ -28,6 +29,7 @@ Architecture lives in `~/.cursor/plans/hookscope_webhook_inspector_826071af.plan
 - Dashboard capture URLs are `window.location.origin + '/in/' + token`, never `config('app.url')`. Clipboard write has an execCommand fallback for non-secure contexts (http://LAN).
 - Capture list queries must not select `body` (or `headers`). Encode the body server-side keyed off `body_encoding` before it becomes an Inertia prop. Scope endpoints through `$request->user()->endpoints()`, not implicit route-model binding.
 - `CaptureDropCounter::count()` returns 0 if the cache is down — same fail-open posture as capture.
+- Live capture inserts sort by `(received_at, id)` descending, matching the list query. Channel names use the endpoint id, never the capture token. `broadcastWith()` is list metadata only. Channel auth is its own HTTP test (`POST /broadcasting/auth`); Phase 6 scoping does not cover websockets.
 
 ## Reviews
 

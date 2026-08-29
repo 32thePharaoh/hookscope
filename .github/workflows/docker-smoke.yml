@@ -67,6 +67,17 @@ jobs:
           test "$size" -gt 0
 
       # Also unreachable from Pest: these requests never traverse nginx there.
+      - name: Nginx proxies /app to Reverb and does not expose /apps
+        run: |
+          set -euo pipefail
+          app_code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/app/hookscope)
+          echo "/app/hookscope -> $app_code"
+          # 502 means the variable+resolver proxy never reached Reverb.
+          test "$app_code" != "502"
+          apps_body=$(curl -sS -o /tmp/apps.html -w '' http://127.0.0.1/apps || true)
+          echo "/apps -> $(wc -c < /tmp/apps.html) bytes"
+          grep -qi 'Not Found' /tmp/apps.html
+
       - name: Oversized bodies get nginx's JSON 413 on POST and PUT
         run: |
           set -euo pipefail

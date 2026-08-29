@@ -17,8 +17,16 @@ x-app-environment: &app-environment
     CACHE_STORE: redis
     QUEUE_CONNECTION: redis
     SESSION_DRIVER: database
-    BROADCAST_CONNECTION: log
+    BROADCAST_CONNECTION: reverb
     HOOKSCOPE_DEMO_BASE_URL: http://nginx
+    REVERB_APP_ID: hookscope
+    REVERB_APP_KEY: hookscope
+    REVERB_APP_SECRET: hookscope-reverb-secret
+    REVERB_HOST: reverb
+    REVERB_PORT: '8080'
+    REVERB_SCHEME: http
+    REVERB_SERVER_HOST: '0.0.0.0'
+    REVERB_SERVER_PORT: '8080'
 
 services:
     app:
@@ -69,8 +77,48 @@ services:
                 condition: service_healthy
             redis:
                 condition: service_healthy
+            reverb:
+                condition: service_healthy
         volumes:
             - app-storage:/var/www/html/storage
+        healthcheck:
+            test: ['CMD-SHELL', 'grep -q queue:work /proc/1/cmdline']
+            interval: 5s
+            timeout: 3s
+            retries: 8
+            start_period: 15s
+
+    reverb:
+        build:
+            context: .
+            target: app
+        restart: unless-stopped
+        env_file:
+            - path: .env
+              required: false
+        environment:
+            <<: *app-environment
+        command:
+            ['php', 'artisan', 'reverb:start', '--host=0.0.0.0', '--port=8080']
+        depends_on:
+            app:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        expose:
+            - '8080'
+        volumes:
+            - app-storage:/var/www/html/storage
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'php -r ''exit(@fsockopen("127.0.0.1", 8080) ? 0 : 1);''',
+                ]
+            interval: 5s
+            timeout: 3s
+            retries: 12
+            start_period: 15s
 
     nginx:
         build:
@@ -81,6 +129,8 @@ services:
             - '80:80'
         depends_on:
             app:
+                condition: service_healthy
+            reverb:
                 condition: service_healthy
         healthcheck:
             test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1/up']
