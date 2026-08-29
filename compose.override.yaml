@@ -1,0 +1,42 @@
+# Loaded automatically for local `docker compose up`.
+# CI / clone-and-run smoke uses `docker compose -f compose.yaml` so this file
+# never applies there.
+services:
+  app:
+    build:
+      context: .
+      target: development
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+    volumes:
+      - .:/var/www/html
+
+  nginx:
+    volumes:
+      - ./public:/var/www/html/public
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+  mysql:
+    ports:
+      - "3306:3306"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  vite:
+    build:
+      context: .
+      target: development
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "5173:5173"
+    environment:
+      APP_ENV: local
+    command: ["sh", "-c", "npm install && npm run dev"]
+    depends_on:
+      app:
+        condition: service_healthy

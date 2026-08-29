@@ -17,10 +17,9 @@ jobs:
     # sets DB_CONNECTION=mysql. These values match it exactly (127.0.0.1:3306,
     # database hookscope, user root, empty password) so setup runs unmodified.
     #
-    # Note: the Pest suite itself still runs on SQLite in-memory, pinned by
-    # phpunit.xml. That moves to MySQL once compose exists, because SQLite
-    # enforces neither column encoding nor collation and so cannot verify the
-    # binary-body handling the longblob schema is being chosen to protect.
+    # Pest uses the same MySQL (phpunit.xml, not SQLite). Keep this image tag
+    # in sync with compose.yaml. SQLite cannot verify the binary-body handling
+    # the longblob schema is being chosen to protect.
     services:
       mysql:
         image: mysql:8.4
