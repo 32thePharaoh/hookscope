@@ -23,7 +23,8 @@ Architecture lives in `~/.cursor/plans/hookscope_webhook_inspector_826071af.plan
 - Queue and cache use Redis. Broadcast stays `log` until Phase 7. The entrypoint generates `APP_KEY` for command services (worker, scheduler), not only FPM.
 - Encode at every JSON boundary (headers, Inertia props, broadcasts, replay snippets). Capture bodies stay `longblob` + `body_encoding`. Headers are stored as `array<string, list<string>>`. Replay `response_snippet` is always base64 at that boundary — no `response_snippet_encoding` column.
 - Replay goes through the PHP SSRF guard. Do not reimplement replay in another language.
-- Pest and Larastan **level 7** run against MySQL. The `ALTER TABLE ... LONGBLOB` migration is MySQL-only; do not add a SQLite test path.
+- Clone-and-run seeds a demo user on first boot (`demo@hookscope.test` / `password`) and a `Demo` endpoint. Guard on `User::query()->exists()`.
+- `hookscope:demo-traffic` posts through `http://nginx` (not `APP_URL` / localhost). Reuse the Demo endpoint, clear its limiter, keep the burst under 120/min. An oversized 413 is a passing guard check.
 
 ## Reviews
 

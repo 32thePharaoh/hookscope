@@ -18,6 +18,7 @@ x-app-environment: &app-environment
     QUEUE_CONNECTION: redis
     SESSION_DRIVER: database
     BROADCAST_CONNECTION: log
+    HOOKSCOPE_DEMO_BASE_URL: http://nginx
 
 services:
     app:

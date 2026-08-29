@@ -35,6 +35,8 @@ php artisan config:clear --no-interaction >/dev/null
 
 if [ "$#" -eq 0 ] || [ "$1" = "php-fpm" ]; then
     php artisan migrate --force --no-interaction
+    # Demo data is a convenience; set -e must not let a seed failure take the app down.
+    php artisan db:seed --force --no-interaction || echo 'hookscope: demo seed failed, continuing'
     exec php-fpm -F
 fi
 
