@@ -2,10 +2,10 @@
 
 namespace App\Providers;
 
+use App\Capture\CaptureDropCounter;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -62,7 +62,7 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute((int) config('hookscope.throttle_per_minute'))
                     ->by('endpoint:'.$token)
                     ->response(function (Request $request, array $headers) use ($token) {
-                        Cache::increment('hookscope:capture-drops:'.$token);
+                        CaptureDropCounter::record($token);
 
                         return response()->json(['message' => 'Too many requests'], 429, $headers);
                     }),

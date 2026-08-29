@@ -4,6 +4,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RejectCaptureProbes;
 use App\Http\Middleware\RejectOversizedCapture;
+use App\Http\Middleware\ThrottleCapture;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware([
                 RejectCaptureProbes::class,
                 RejectOversizedCapture::class,
-                'throttle:capture',
+                ThrottleCapture::class,
             ])->group(base_path('routes/capture.php'));
         },
     )

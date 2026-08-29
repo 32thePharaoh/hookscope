@@ -2,12 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Capture\CaptureDropCounter;
+use App\Http\Middleware\ThrottleCapture;
 use App\Jobs\EnrichCapturedRequest;
 use App\Models\CapturedRequest;
 use App\Models\Endpoint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
+use RuntimeException;
 use Tests\TestCase;
 
 class CaptureTest extends TestCase
@@ -135,7 +140,7 @@ class CaptureTest extends TestCase
 
         Bus::shouldReceive('dispatch')
             ->once()
-            ->andThrow(new \RuntimeException('Redis is down'));
+            ->andThrow(new RuntimeException('Redis is down'));
 
         $this->postJson('/in/'.$endpoint->token, ['ok' => true])->assertOk();
         $this->assertSame(1, CapturedRequest::query()->count());
@@ -162,6 +167,63 @@ class CaptureTest extends TestCase
 
         $this->assertSame(2, CapturedRequest::query()->count());
         $this->assertSame(1, (int) Cache::get('hookscope:capture-drops:'.$endpoint->token));
+    }
+
+    public function test_capture_survives_the_rate_limiter_store_being_down(): void
+    {
+        // The limiter runs before the controller, so a dead cache would otherwise
+        // 500 the request before the row is inserted and lose the capture.
+        RateLimiter::for('capture', function (): never {
+            throw new RuntimeException('cache unavailable');
+        });
+
+        $endpoint = Endpoint::factory()->create();
+
+        $this->postJson('/in/'.$endpoint->token, ['ok' => true])->assertOk();
+
+        $this->assertSame(1, CapturedRequest::query()->count());
+    }
+
+    public function test_failing_open_does_not_swallow_downstream_exceptions(): void
+    {
+        $middleware = app(ThrottleCapture::class);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('from the controller');
+
+        $middleware->handle(
+            Request::create('/in/token'),
+            function (): never {
+                throw new RuntimeException('from the controller');
+            },
+        );
+    }
+
+    public function test_unknown_tokens_do_not_create_drop_counters(): void
+    {
+        config(['hookscope.throttle_per_minute' => 1]);
+
+        $this->postJson('/in/no-such-token')->assertNotFound();
+        $this->postJson('/in/no-such-token')->assertStatus(429);
+
+        // Cache::increment creates keys with no TTL, so counting unknown tokens
+        // would let a flood mint permanent ones.
+        $this->assertNull(Cache::get(CaptureDropCounter::key('no-such-token')));
+    }
+
+    public function test_drop_counters_expire(): void
+    {
+        config(['hookscope.throttle_per_minute' => 1]);
+        $endpoint = Endpoint::factory()->create();
+
+        $this->postJson('/in/'.$endpoint->token, ['n' => 1])->assertOk();
+        $this->postJson('/in/'.$endpoint->token, ['n' => 2])->assertStatus(429);
+
+        $this->assertSame(1, CaptureDropCounter::count($endpoint->token));
+
+        $this->travel(25)->hours();
+
+        $this->assertSame(0, CaptureDropCounter::count($endpoint->token));
     }
 
     public function test_capture_does_not_require_csrf(): void
