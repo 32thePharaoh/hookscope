@@ -25,6 +25,9 @@ Architecture lives in `~/.cursor/plans/hookscope_webhook_inspector_826071af.plan
 - Replay goes through the PHP SSRF guard. Do not reimplement replay in another language.
 - Clone-and-run seeds a demo user on first boot (`demo@hookscope.test` / `password`) and a `Demo` endpoint. Guard on `User::query()->exists()`.
 - `hookscope:demo-traffic` posts through `http://nginx` (not `APP_URL` / localhost). Reuse the Demo endpoint, clear its limiter, keep the burst under 120/min. An oversized 413 is a passing guard check.
+- Dashboard capture URLs are `window.location.origin + '/in/' + token`, never `config('app.url')`. Clipboard write has an execCommand fallback for non-secure contexts (http://LAN).
+- Capture list queries must not select `body` (or `headers`). Encode the body server-side keyed off `body_encoding` before it becomes an Inertia prop. Scope endpoints through `$request->user()->endpoints()`, not implicit route-model binding.
+- `CaptureDropCounter::count()` returns 0 if the cache is down — same fail-open posture as capture.
 
 ## Reviews
 

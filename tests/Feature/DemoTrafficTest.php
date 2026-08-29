@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CapturedRequest;
 use App\Models\Endpoint;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,6 +26,14 @@ class DemoTrafficTest extends TestCase
         $this->assertTrue(
             Endpoint::query()->where('name', 'Demo')->where('user_id', $user->id)->exists(),
         );
+
+        $oddHeader = CapturedRequest::query()
+            ->where('body_encoding', 'utf-8')
+            ->first();
+        $this->assertNotNull($oddHeader);
+        $this->assertIsArray($oddHeader->headers['x-odd'][0] ?? null);
+        $this->assertSame('base64', $oddHeader->headers['x-odd'][0]['encoding']);
+        $this->assertNotSame('', $oddHeader->headers['x-odd'][0]['value']);
 
         $this->post(route('login.store'), [
             'email' => 'demo@hookscope.test',

@@ -43,6 +43,8 @@ class DatabaseSeeder extends Seeder
             'retention_days' => 7,
         ]);
 
+        // x-odd uses the capture-path marker so the dashboard is built against
+        // the real header shape (plain string or {encoding, value}).
         $request = $this->capture($endpoint, '{"event":"invoice.paid"}', 'application/json', 'utf-8');
         $this->capture($endpoint, "\x80\x81\xFF".'binary-demo', 'application/octet-stream', 'binary');
 
@@ -64,7 +66,13 @@ class DatabaseSeeder extends Seeder
             'method' => 'POST',
             'path' => 'in/'.$endpoint->token,
             'query' => null,
-            'headers' => ['content-type' => [$contentType]],
+            'headers' => [
+                'content-type' => [$contentType],
+                'x-odd' => [[
+                    'encoding' => 'base64',
+                    'value' => base64_encode("caf\xe9-\xff"),
+                ]],
+            ],
             'body' => $body,
             'body_encoding' => $encoding,
             'content_type' => $contentType,

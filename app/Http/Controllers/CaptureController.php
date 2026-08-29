@@ -31,7 +31,7 @@ class CaptureController extends Controller
             'headers' => HeaderSanitizer::sanitize($request->headers->all()),
             'body' => $body,
             'body_encoding' => mb_check_encoding($body, 'UTF-8') ? 'utf-8' : 'binary',
-            'content_type' => $request->headers->get('Content-Type'),
+            'content_type' => HeaderSanitizer::scalar($request->headers->get('Content-Type')),
             'ip' => $request->ip(),
             'size_bytes' => strlen($body),
             'received_at' => now(),
