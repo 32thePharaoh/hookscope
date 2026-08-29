@@ -4,6 +4,7 @@ namespace App\Capture;
 
 use App\Models\Endpoint;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 /**
  * Counts captures dropped by the rate limiter, for display on the endpoint.
@@ -34,7 +35,11 @@ final class CaptureDropCounter
 
     public static function count(string $token): int
     {
-        return (int) Cache::get(self::key($token), 0);
+        try {
+            return (int) Cache::get(self::key($token), 0);
+        } catch (Throwable) {
+            return 0;
+        }
     }
 
     private static function endpointExists(string $token): bool
