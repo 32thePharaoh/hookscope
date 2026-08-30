@@ -8,6 +8,7 @@ return [
     'replay_connect_timeout' => (int) env('HOOKSCOPE_REPLAY_CONNECT_TIMEOUT', 2),
     'replay_timeout' => (int) env('HOOKSCOPE_REPLAY_TIMEOUT', 8),
     'replay_snippet_bytes' => (int) env('HOOKSCOPE_REPLAY_SNIPPET_BYTES', 8192),
+    'prune_chunk' => (int) env('HOOKSCOPE_PRUNE_CHUNK', 25),
     'demo' => [
         'email' => 'demo@hookscope.test',
         'password' => 'password',

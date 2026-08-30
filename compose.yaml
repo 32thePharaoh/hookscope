@@ -88,6 +88,33 @@ services:
             retries: 8
             start_period: 15s
 
+    scheduler:
+        build:
+            context: .
+            target: app
+        restart: unless-stopped
+        env_file:
+            - path: .env
+              required: false
+        environment:
+            <<: *app-environment
+        command: ['php', 'artisan', 'schedule:work']
+        depends_on:
+            app:
+                condition: service_healthy
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        volumes:
+            - app-storage:/var/www/html/storage
+        healthcheck:
+            test: ['CMD-SHELL', 'grep -q schedule: /proc/1/cmdline']
+            interval: 5s
+            timeout: 3s
+            retries: 8
+            start_period: 15s
+
     reverb:
         build:
             context: .

@@ -39,6 +39,16 @@ services:
             - .:/var/www/html
         command: ['php', 'artisan', 'queue:listen', '--tries=1']
 
+    scheduler:
+        build:
+            context: .
+            target: development
+        environment:
+            APP_ENV: local
+            APP_DEBUG: 'true'
+        volumes:
+            - .:/var/www/html
+
     reverb:
         build:
             context: .
