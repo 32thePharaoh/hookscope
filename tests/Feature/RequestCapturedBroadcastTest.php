@@ -67,6 +67,6 @@ class RequestCapturedBroadcastTest extends TestCase
                 ->missing('broadcasting'),
             );
 
-        $this->assertStringNotContainsString('must-not-leak', $this->actingAs($user)->get(route('dashboard'))->getContent());
+        $this->assertStringNotContainsString('must-not-leak', $this->html($this->actingAs($user)->get(route('dashboard'))));
     }
 }

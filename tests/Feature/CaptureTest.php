@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -25,6 +26,27 @@ class CaptureTest extends TestCase
 
         $this->postJson('/api/in/'.$endpoint->token, ['ok' => true])->assertNotFound();
         $this->postJson('/in/'.$endpoint->token, ['ok' => true])->assertOk();
+    }
+
+    public function test_capture_does_not_start_a_session(): void
+    {
+        $endpoint = Endpoint::factory()->create();
+
+        $capture = $this->postJson('/in/'.$endpoint->token, ['ok' => true]);
+        $capture->assertOk();
+        $this->assertCount(0, $capture->headers->getCookies());
+
+        $login = $this->get(route('login'));
+        $login->assertOk();
+        $this->assertNotEmpty(
+            $login->headers->getCookies(),
+            'Login must set session cookies, or the capture assertion is a no-op.',
+        );
+
+        $route = Route::getRoutes()->match(
+            Request::create('/in/'.$endpoint->token, 'POST'),
+        );
+        $this->assertNotContains('web', $route->gatherMiddleware());
     }
 
     public function test_post_persists_the_raw_body_and_returns_200(): void
