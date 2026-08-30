@@ -1,19 +1,37 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 import CopyCaptureUrl from '@/components/CopyCaptureUrl.vue';
 import Heading from '@/components/Heading.vue';
 import MethodBadge from '@/components/MethodBadge.vue';
 import { Button } from '@/components/ui/button';
+import { useEndpointLiveCaptures } from '@/composables/useEndpointLiveCaptures';
 import { dashboard } from '@/routes';
 import { show as captureShow } from '@/routes/captured-requests';
 import type { CaptureListItem, CursorPage, EndpointSummary } from '@/types';
 
-const { endpoint, captures, drops_in_last_24h, on_first_page } = defineProps<{
+const props = defineProps<{
     endpoint: EndpointSummary;
     captures: CursorPage<CaptureListItem>;
     drops_in_last_24h: number;
     on_first_page: boolean;
 }>();
+
+const rows = ref<CaptureListItem[]>([...props.captures.data]);
+
+watch(
+    () => props.captures.data,
+    (data) => {
+        rows.value = [...data];
+    },
+);
+
+useEndpointLiveCaptures(
+    () => props.endpoint.id,
+    () => props.on_first_page,
+    rows,
+    () => props.captures.per_page,
+);
 
 defineOptions({
     layout: {
@@ -78,7 +96,7 @@ function formatTime(iso: string): string {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-if="captures.data.length === 0">
+                    <tr v-if="rows.length === 0">
                         <td
                             colspan="5"
                             class="text-muted-foreground px-3 py-8 text-center"
@@ -87,7 +105,7 @@ function formatTime(iso: string): string {
                         </td>
                     </tr>
                     <tr
-                        v-for="capture in captures.data"
+                        v-for="capture in rows"
                         :key="capture.id"
                         class="hover:bg-muted/40 border-t"
                     >

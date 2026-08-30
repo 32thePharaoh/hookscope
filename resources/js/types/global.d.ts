@@ -1,4 +1,11 @@
 import type { Auth } from '@/types/auth';
+import type Pusher from 'pusher-js';
+
+declare global {
+    interface Window {
+        Pusher: typeof Pusher;
+    }
+}
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -19,6 +26,7 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            reverbKey: string | null;
             [key: string]: unknown;
         };
     }

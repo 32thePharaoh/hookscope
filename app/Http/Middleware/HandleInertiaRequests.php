@@ -42,6 +42,14 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'reverbKey' => self::reverbKey(),
         ];
+    }
+
+    private static function reverbKey(): ?string
+    {
+        $key = config('broadcasting.connections.reverb.key');
+
+        return is_string($key) && $key !== '' ? $key : null;
     }
 }

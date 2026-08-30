@@ -67,6 +67,26 @@ jobs:
           test "$size" -gt 0
 
       # Also unreachable from Pest: these requests never traverse nginx there.
+      - name: Nginx proxies /app to Reverb and does not expose /apps
+        run: |
+          set -euo pipefail
+          # A plain GET returns Reverb's own 500, which a not-502 check would pass
+          # without proving the proxy works. Assert the upgrade handshake instead.
+          upgrade=$(curl -s -i --http1.1 --max-time 5 -N \
+            -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+            -H 'Sec-WebSocket-Version: 13' \
+            -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+            'http://127.0.0.1/app/hookscope?protocol=7&client=js&version=8.4.0' \
+            2>/dev/null | head -n 1 || true)
+          echo "/app/hookscope upgrade -> ${upgrade:-<no response>}"
+          case "$upgrade" in
+            *101*) ;;
+            *) echo 'expected 101 Switching Protocols from Reverb'; exit 1 ;;
+          esac
+          apps_body=$(curl -sS -o /tmp/apps.html -w '' http://127.0.0.1/apps || true)
+          echo "/apps -> $(wc -c < /tmp/apps.html) bytes"
+          grep -qi 'Not Found' /tmp/apps.html
+
       - name: Oversized bodies get nginx's JSON 413 on POST and PUT
         run: |
           set -euo pipefail
