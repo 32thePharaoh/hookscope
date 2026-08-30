@@ -54,7 +54,7 @@ class DatabaseSeeder extends Seeder
             'status_code' => 200,
             'duration_ms' => 42,
             'error' => null,
-            'response_snippet' => '{"received":true}',
+            'response_snippet' => base64_encode('{"received":true}'),
             'forwarded_headers' => ['Content-Type'],
         ]);
     }

@@ -34,3 +34,14 @@ export type CaptureDetail = CaptureListItem & {
     body: string;
     body_encoding: string;
 };
+
+export type ReplaySummary = {
+    id: number;
+    target_url: string;
+    status_code: number | null;
+    duration_ms: number | null;
+    error: string | null;
+    response_snippet: string | null;
+    forwarded_headers: string[];
+    created_at: string | null;
+};

@@ -1,19 +1,29 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Form, Head, Link } from '@inertiajs/vue3';
 import CopyCaptureUrl from '@/components/CopyCaptureUrl.vue';
 import Heading from '@/components/Heading.vue';
+import InputError from '@/components/InputError.vue';
 import MethodBadge from '@/components/MethodBadge.vue';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    hexDumpFromBase64,
+    prettyJson,
+    utf8FromBase64,
+} from '@/lib/formatBody';
+import { displayHeaderValue, isEncodedHeader } from '@/lib/headerValue';
 import { dashboard } from '@/routes';
 import { show as endpointShow } from '@/routes/endpoints';
-import { displayHeaderValue, isEncodedHeader } from '@/lib/headerValue';
-import { hexDumpFromBase64, prettyJson } from '@/lib/formatBody';
-import type { CaptureDetail, EndpointSummary } from '@/types';
+import type { CaptureDetail, EndpointSummary, ReplaySummary } from '@/types';
 
-const { endpoint, capture } = defineProps<{
+const { endpoint, capture, replays, allow_private_targets } = defineProps<{
     endpoint: Pick<EndpointSummary, 'id' | 'name' | 'token'>;
     capture: CaptureDetail;
+    replays: ReplaySummary[];
+    allow_private_targets: boolean;
 }>();
 
 defineOptions({
@@ -39,6 +49,24 @@ const bodyLabel =
     capture.body_encoding === 'binary'
         ? 'Body (hex, stored as binary)'
         : 'Body';
+
+function snippetDisplay(base64: string | null): string {
+    if (base64 === null || base64 === '') {
+        return '';
+    }
+
+    const utf8 = utf8FromBase64(base64);
+
+    if (utf8 !== null) {
+        return prettyJson(utf8) ?? utf8;
+    }
+
+    return hexDumpFromBase64(base64);
+}
+
+function snippetIsBinary(base64: string | null): boolean {
+    return base64 !== null && base64 !== '' && utf8FromBase64(base64) === null;
+}
 </script>
 
 <template>
@@ -128,6 +156,114 @@ const bodyLabel =
                         ? hexDumpFromBase64(capture.body)
                         : (pretty ?? capture.body)
                 }}</pre>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-sm font-medium">Replay</h2>
+            <p
+                v-if="allow_private_targets"
+                class="text-muted-foreground text-xs"
+            >
+                Private and LAN targets are allowed on this instance (dev escape
+                hatch). Production compose leaves this off.
+            </p>
+            <Form
+                method="post"
+                :action="`/endpoints/${endpoint.id}/requests/${capture.id}/replays`"
+                class="flex flex-col gap-3 rounded-xl border p-4"
+                v-slot="{ errors, processing }"
+            >
+                <div class="grid gap-2">
+                    <Label for="target_url">Target URL</Label>
+                    <Input
+                        id="target_url"
+                        name="target_url"
+                        type="url"
+                        required
+                        maxlength="2048"
+                        placeholder="https://example.test/webhook"
+                    />
+                    <InputError :message="errors.target_url" />
+                </div>
+                <label class="flex items-start gap-2 text-sm">
+                    <input
+                        id="forward_sensitive"
+                        name="forward_sensitive"
+                        type="checkbox"
+                        value="1"
+                        class="mt-1"
+                    />
+                    <span>
+                        Forward Authorization, Cookie, and signature headers.
+                        Off by default — those are credentials, not metadata.
+                    </span>
+                </label>
+                <div>
+                    <Button type="submit" :disabled="processing">
+                        Replay
+                    </Button>
+                </div>
+            </Form>
+
+            <div
+                v-if="replays.length === 0"
+                class="text-muted-foreground text-sm"
+            >
+                No replays yet.
+            </div>
+            <article
+                v-for="replay in replays"
+                :key="replay.id"
+                class="space-y-2 rounded-xl border p-4"
+            >
+                <div class="flex flex-wrap items-center gap-2 text-sm">
+                    <Badge :variant="replay.error ? 'destructive' : 'outline'">
+                        {{
+                            replay.status_code === null
+                                ? 'No response'
+                                : String(replay.status_code)
+                        }}
+                    </Badge>
+                    <span class="font-mono text-xs break-all">{{
+                        replay.target_url
+                    }}</span>
+                    <span
+                        v-if="replay.duration_ms !== null"
+                        class="text-muted-foreground text-xs"
+                    >
+                        {{ replay.duration_ms }} ms
+                    </span>
+                </div>
+                <p
+                    v-if="replay.status_code === 301 && replay.error === null"
+                    class="text-muted-foreground text-xs"
+                >
+                    Redirect not followed. 301 is the recorded outcome.
+                </p>
+                <p
+                    v-if="replay.error"
+                    class="text-destructive font-mono text-xs"
+                >
+                    {{ replay.error }}
+                </p>
+                <p
+                    v-if="replay.forwarded_headers.length > 0"
+                    class="text-muted-foreground text-xs"
+                >
+                    Forwarded: {{ replay.forwarded_headers.join(', ') }}
+                </p>
+                <pre
+                    v-if="replay.response_snippet"
+                    class="bg-muted/40 overflow-x-auto rounded-lg border p-3 font-mono text-xs leading-5"
+                    >{{ snippetDisplay(replay.response_snippet) }}</pre>
+                <p
+                    v-if="snippetIsBinary(replay.response_snippet)"
+                    class="text-muted-foreground text-xs"
+                >
+                    Snippet stored as base64; shown as hex because the bytes are
+                    not UTF-8.
+                </p>
+            </article>
         </section>
     </div>
 </template>

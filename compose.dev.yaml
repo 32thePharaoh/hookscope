@@ -7,6 +7,7 @@ services:
         environment:
             APP_ENV: local
             APP_DEBUG: 'true'
+            HOOKSCOPE_ALLOW_PRIVATE_TARGETS: 'true'
         volumes:
             - .:/var/www/html
 
@@ -33,6 +34,7 @@ services:
         environment:
             APP_ENV: local
             APP_DEBUG: 'true'
+            HOOKSCOPE_ALLOW_PRIVATE_TARGETS: 'true'
         volumes:
             - .:/var/www/html
         command: ['php', 'artisan', 'queue:listen', '--tries=1']
