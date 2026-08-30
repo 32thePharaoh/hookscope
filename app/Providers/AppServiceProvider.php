@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Capture\CaptureDropCounter;
+use App\Replay\DnsResolver;
+use App\Replay\PhpDnsResolver;
+use App\Replay\ReplayTargetValidator;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -19,7 +22,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(DnsResolver::class, PhpDnsResolver::class);
+        $this->app->bind(ReplayTargetValidator::class, function ($app): ReplayTargetValidator {
+            $resolver = $app->make(DnsResolver::class);
+            assert($resolver instanceof DnsResolver);
+
+            return new ReplayTargetValidator(
+                $resolver,
+                (bool) config('hookscope.allow_private_targets'),
+            );
+        });
     }
 
     /**

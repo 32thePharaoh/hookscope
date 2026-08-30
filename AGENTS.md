@@ -30,6 +30,7 @@ Architecture lives in `~/.cursor/plans/hookscope_webhook_inspector_826071af.plan
 - Capture list queries must not select `body` (or `headers`). Encode the body server-side keyed off `body_encoding` before it becomes an Inertia prop. Scope endpoints through `$request->user()->endpoints()`, not implicit route-model binding.
 - `CaptureDropCounter::count()` returns 0 if the cache is down — same fail-open posture as capture.
 - Live capture inserts sort by `(received_at, id)` descending, matching the list query. Channel names use the endpoint id, never the capture token. `broadcastWith()` is list metadata only. Channel auth is its own HTTP test (`POST /broadcasting/auth`); Phase 6 scoping does not cover websockets.
+- Replay goes through `$user->endpoints()` then the captured request. `response_snippet` is stored already base64 (no encoding column). The SSRF validator is a class: injectable resolver, `ForbiddenIp` as pure functions, pin with `CURLOPT_RESOLVE` as `host:port:ip` using the URL's port. Connect timeout plus total timeout; cap the body by aborting the stream. Content-Type (and any forwarded header) comes from the headers JSON, not the lossy `content_type` column. Auth-bearing headers are off unless opted in. `HOOKSCOPE_ALLOW_PRIVATE_TARGETS` is the local demo hatch; Pest uses `Http::fake()`; smoke must not call a real external host. A 301 is a recorded status, not a bug. `error` stays ASCII — never interpolate response bytes into it.
 
 ## Reviews
 

@@ -28,3 +28,15 @@ export function hexDumpFromBase64(base64: string): string {
 
     return lines.join('\n');
 }
+
+export function utf8FromBase64(base64: string): string | null {
+    try {
+        const bytes = Uint8Array.from(atob(base64), (char) =>
+            char.charCodeAt(0),
+        );
+
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch {
+        return null;
+    }
+}
