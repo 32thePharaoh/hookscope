@@ -21,7 +21,8 @@ x-app-environment: &app-environment
     HOOKSCOPE_DEMO_BASE_URL: http://nginx
     REVERB_APP_ID: hookscope
     REVERB_APP_KEY: hookscope
-    REVERB_APP_SECRET: hookscope-reverb-secret
+    # Override before exposing the stack; Compose interpolates from the host.
+    REVERB_APP_SECRET: ${REVERB_APP_SECRET:-hookscope-reverb-secret}
     REVERB_HOST: reverb
     REVERB_PORT: '8080'
     REVERB_SCHEME: http
