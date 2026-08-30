@@ -10,30 +10,27 @@ final class CappedBuffer
 
     public function __construct(private int $maxBytes) {}
 
+    /**
+     * Buffers up to the cap and discards the rest, always reporting the full
+     * chunk as consumed. Returning less than strlen($chunk) is CURLE_WRITE_ERROR
+     * to curl, which aborts the transfer and loses the status code, so the cap
+     * has to bound memory rather than the request. The replay timeout bounds
+     * how long a large body can keep streaming.
+     */
     public function write(string $chunk): int
     {
-        if ($this->hitCap) {
-            return 0;
-        }
-
+        $length = strlen($chunk);
         $room = $this->maxBytes - strlen($this->buffer);
 
-        if ($room <= 0) {
-            $this->hitCap = true;
-
-            return 0;
-        }
-
-        if (strlen($chunk) > $room) {
+        if ($room > 0) {
             $this->buffer .= substr($chunk, 0, $room);
-            $this->hitCap = true;
-
-            return 0;
         }
 
-        $this->buffer .= $chunk;
+        if ($length > max($room, 0)) {
+            $this->hitCap = true;
+        }
 
-        return strlen($chunk);
+        return $length;
     }
 
     public function contents(): string

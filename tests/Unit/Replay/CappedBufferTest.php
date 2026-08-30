@@ -7,13 +7,15 @@ use PHPUnit\Framework\TestCase;
 
 class CappedBufferTest extends TestCase
 {
-    public function test_it_stops_writing_once_the_cap_is_hit_rather_than_buffering_the_rest(): void
+    public function test_it_discards_past_the_cap_without_aborting_the_transfer(): void
     {
         $buffer = new CappedBuffer(8);
 
+        // Must report the whole chunk consumed: a short return is
+        // CURLE_WRITE_ERROR, which aborts the transfer and loses the status code.
         $this->assertSame(4, $buffer->write('abcd'));
-        $this->assertSame(0, $buffer->write('efghijkl'));
-        $this->assertSame(0, $buffer->write('more'));
+        $this->assertSame(8, $buffer->write('efghijkl'));
+        $this->assertSame(4, $buffer->write('more'));
         $this->assertTrue($buffer->hitCap);
         $this->assertSame('abcdefgh', $buffer->contents());
         $this->assertSame(8, strlen($buffer->contents()));

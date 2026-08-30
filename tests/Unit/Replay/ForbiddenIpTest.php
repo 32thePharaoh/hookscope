@@ -46,6 +46,11 @@ class ForbiddenIpTest extends TestCase
     public static function forbiddenAddresses(): array
     {
         return [
+            'ipv4-compatible-v6' => ['::127.0.0.1'],
+            'cgnat' => ['100.64.0.1'],
+            'nat64-loopback' => ['64:ff9b::7f00:1'],
+            'six-to-four-loopback' => ['2002:7f00:0001::'],
+            'site-local' => ['fec0::1'],
             'loopback' => ['127.0.0.1'],
             'loopback-net' => ['127.255.255.255'],
             'unspecified-v4' => ['0.0.0.0'],
@@ -76,6 +81,13 @@ class ForbiddenIpTest extends TestCase
             'example-docs-v4' => ['93.184.216.34'],
             'one-one-one-one' => ['1.1.1.1'],
             'public-v6' => ['2001:4860:4860::8888'],
+            // Just outside the blocked ranges: the masks must not overreach.
+            'just-past-rfc1918' => ['172.32.0.1'],
+            'just-past-cgnat' => ['100.128.0.1'],
+            // The IPv4-embedding prefixes are only blocked when the address
+            // they carry is itself private.
+            'six-to-four-public' => ['2002:5db8:0001::'],
+            'nat64-public' => ['64:ff9b::808:808'],
         ];
     }
 }
