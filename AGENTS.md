@@ -1,6 +1,6 @@
 # Hookscope agent notes
 
-Architecture lives in `~/.cursor/plans/hookscope_webhook_inspector_826071af.plan.md`. Do not re-derive it. Do not start Phase 12 (AI/MCP) until v1.0 is tagged.
+Do not start Phase 12 (AI/MCP) until v1.0 is tagged.
 
 ## Git
 
