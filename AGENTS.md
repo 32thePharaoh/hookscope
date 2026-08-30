@@ -17,7 +17,7 @@ Architecture lives in `~/.cursor/plans/hookscope_webhook_inspector_826071af.plan
 
 ## Product invariants (v1.0)
 
-- Capture URL stays `/in/{token}` on a dedicated `routes/capture.php` stack (no CSRF, no session). Not `routes/api.php`. Record GET/POST/PUT/PATCH/DELETE; skip HEAD and OPTIONS without inserting a row.
+- Capture URL stays `/in/{token}` on a dedicated `routes/capture.php` stack (no CSRF, no session). Not `routes/api.php`. A capture response must set zero cookies; moving the route into `web.php` with a CSRF exception would still start a session per webhook. Record GET/POST/PUT/PATCH/DELETE; skip HEAD and OPTIONS without inserting a row.
 - Persist the capture first; return 200 even if the queue is down.
 - Multipart bodies on `/in/` must hit nginx `enable_post_data_reading=off` so `getContent()` is the real bytes. Do not set that ini globally.
 - Queue and cache use Redis. Broadcast uses Reverb over the compose network (`reverb:8080`). nginx proxies `/app/` same-origin; `/apps` stays internal (no `ports:` on the reverb service). Shared Inertia props carry only `reverbKey`, never the secret. Client Echo derives host/port/TLS from `window.location`.
@@ -33,6 +33,7 @@ Architecture lives in `~/.cursor/plans/hookscope_webhook_inspector_826071af.plan
 - Replay goes through `$user->endpoints()` then the captured request. `response_snippet` is stored already base64 (no encoding column). The SSRF validator is a class: injectable resolver, `ForbiddenIp` as pure functions, pin with `CURLOPT_RESOLVE` as `host:port:ip` using the URL's port. Connect timeout plus total timeout; cap the body by reporting the full chunk as consumed and discarding past the cap (returning 0 from the write callback is `CURLE_WRITE_ERROR` and loses `status_code`). Content-Type (and any forwarded header) comes from the headers JSON, not the lossy `content_type` column. Auth-bearing headers are off unless opted in. `HOOKSCOPE_ALLOW_PRIVATE_TARGETS` is the local demo hatch; Pest uses `Http::fake()`; smoke must not call a real external host. A 301 is a recorded status, not a bug. `error` stays ASCII — never interpolate response bytes into it.
 - `hookscope:prune` deletes on `received_at` (the `(endpoint_id, received_at)` index), never `created_at`. Use `chunkById()`, not `chunk()` — offset pagination skips rows as deletes shift the window. Keep the chunk small; cascade deletes replays in the same statement. Exact cutoff (`received_at === now - retention_days`) is kept (`<`, not `<=`). If the Redis lock cannot be acquired or throws, skip the run (fail-open: a missed prune is harmless). Do not put `withoutOverlapping()` on the Schedule event.
 - Queue healthcheck is `grep -q queue: /proc/1/cmdline`. Scheduler healthcheck is `grep -q schedule: /proc/1/cmdline`. Do not copy either onto the other service. The scheduler must pass `command: ['php', 'artisan', 'schedule:work']` — the entrypoint's no-command path migrates, seeds, and execs php-fpm. Do not wrap that command in `sh -c`; PID 1 would be `sh` and the healthcheck would never match.
+- Larastan level 7 includes `tests/`. Do not drop that path. Do not add a coverage threshold gate.
 
 ## Reviews
 

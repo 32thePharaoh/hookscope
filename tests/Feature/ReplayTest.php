@@ -251,7 +251,7 @@ class ReplayTest extends TestCase
         );
 
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization'));
-        $this->assertContains('authorization', $replay->fresh()?->forwarded_headers ?? []);
+        $this->assertContains('authorization', $replay->fresh()->forwarded_headers);
     }
 
     public function test_the_detail_page_lists_replays_and_treats_301_as_a_status_not_an_error(): void

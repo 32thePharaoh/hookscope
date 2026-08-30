@@ -111,8 +111,8 @@ class EndpointDashboardTest extends TestCase
             ->get(route('endpoints.show', $endpoint))
             ->assertOk();
 
-        $this->assertStringNotContainsString($marker, $response->getContent());
-        $this->assertStringNotContainsString('LIST_MUST_NOT_CONTAIN_THIS_HEADER', $response->getContent());
+        $this->assertStringNotContainsString($marker, $this->html($response));
+        $this->assertStringNotContainsString('LIST_MUST_NOT_CONTAIN_THIS_HEADER', $this->html($response));
 
         $response->assertInertia(fn (Assert $page) => $page
             ->component('endpoints/Show')

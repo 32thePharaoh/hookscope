@@ -220,9 +220,12 @@ class DomainModelTest extends TestCase
      */
     private function column(string $table, string $name): array
     {
-        $column = collect(Schema::getColumns($table))->firstWhere('name', $name);
-        $this->assertIsArray($column);
+        foreach (Schema::getColumns($table) as $column) {
+            if ($column['name'] === $name) {
+                return $column;
+            }
+        }
 
-        return $column;
+        $this->fail("Missing column {$table}.{$name}");
     }
 }
